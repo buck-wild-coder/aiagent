@@ -1,42 +1,36 @@
 import os
 import subprocess
-from helper import path_controller
+
+
 def run_python_file(working_directory, file_path, args=None):
     try:
-        working_dir_abs, target_dir, valid_target_dir = path_controller(working_directory, file_path)
-
-        if not valid_target_dir:
+        abs_working_dir = os.path.abspath(working_directory)
+        abs_file_path = os.path.normpath(os.path.join(abs_working_dir, file_path))
+        if os.path.commonpath([abs_working_dir, abs_file_path]) != abs_working_dir:
             return f'Error: Cannot execute "{file_path}" as it is outside the permitted working directory'
-
-        if not os.path.isfile(target_dir):
+        if not os.path.isfile(abs_file_path):
             return f'Error: "{file_path}" does not exist or is not a regular file'
-        
-        if target_dir[-3:] != ".py":
+        if not abs_file_path.endswith(".py"):
             return f'Error: "{file_path}" is not a Python file'
-        
-        command = ["python", target_dir]
-
+        command = ["python", abs_file_path]
         if args:
             command.extend(args)
-
-        complete_process = subprocess.run(command, cwd=working_directory, capture_output=True, text=True, timeout=30)
-
-        if complete_process.returncode != 0:
-            return f"Process exited with code {complete_process}"
-
-        if (complete_process.stdout or complete_process.stderr) == None:
-            return "No output produced"
-        
-        lst = []
-        output = complete_process.stdout
-        error = complete_process.stderr
-
-        if output:
-            lst.append(f"STDOUT: {output}")
-        if error:
-            lst.append(f"STDERR: {error}")
-        
-        return "\n".join(lst)
-
+        result = subprocess.run(
+            command,
+            cwd=abs_working_dir,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        output = []
+        if result.returncode != 0:
+            output.append(f"Process exited with code {result.returncode}")
+        if not result.stdout and not result.stderr:
+            output.append("No output produced")
+        if result.stdout:
+            output.append(f"STDOUT:\n{result.stdout}")
+        if result.stderr:
+            output.append(f"STDERR:\n{result.stderr}")
+        return "\n".join(output)
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: executing Python file: {e}"
