@@ -3,6 +3,7 @@ import argparse
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from prompts import system_prompt
 
 def main():
     parser = argparse.ArgumentParser(description="Chatbot")
@@ -21,7 +22,12 @@ def main():
 
     client = genai.Client(api_key=api_key)
 
-    response = client.models.generate_content(model="gemini-2.5-flash", contents=messages)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=messages,
+        config=types.GenerateContentConfig(system_instruction=system_prompt, temperature=0)
+        )
+    
     if response.usage_metadata is None:
         raise RuntimeError("An error was occured during the api call")
     
